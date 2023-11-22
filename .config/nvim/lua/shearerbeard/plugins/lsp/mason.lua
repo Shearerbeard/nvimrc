@@ -29,11 +29,9 @@ return {
       ensure_installed = {
         "tsserver",
         "html",
-        "cssls",
         "tailwindcss",
         "svelte",
         "lua_ls",
-        "graphql",
         "pyright",
         "rust_analyzer",
 	"ghcide",

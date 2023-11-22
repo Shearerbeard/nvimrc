@@ -11,7 +11,7 @@ if not vim.loop.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
-require("lazy").setup("shearerbeard.plugins")
+require("lazy").setup({{import = "shearerbeard.plugins"},{import = "shearerbeard.plugins.lsp"}})
 
 -- {"folke/tokyonight.nvim"},
 -- {'nvim-lualine/lualine.nvim'},
