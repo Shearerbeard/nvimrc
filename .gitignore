@@ -1,0 +1,41 @@
+# Neovim session files
+Session.vim
+*.swp
+*.swo
+
+# Lazy.nvim plugin manager
+lazy-lock.json
+
+# Compiled Lua files
+luac.out
+
+# Backup files
+*~
+*.bak
+
+# Shada (shared data) files
+.netrwhist
+
+# Local history
+.history/
+
+# Log files
+*.log
+
+# Cache files
+.cache/
+
+# Undo history
+undo/
+
+# Session files
+sessions/
+
+# Temporary files
+tmp/
+
+# Saved macros
+macros/
+
+# LSP files
+.luarc.json
