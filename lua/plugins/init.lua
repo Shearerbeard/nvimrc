@@ -163,6 +163,17 @@ return {
     end,
   },
   {
+    "zbirenbaum/copilot.lua",
+    cmd = "Copilot",
+    event = "InsertEnter",
+    config = function()
+      require("copilot").setup({
+        suggestion = { enabled = false },
+        panel = { enabled = false },
+      })
+    end,
+  },
+  {
     "yetone/avante.nvim",
     event = "VeryLazy",
     version = false, -- Never set this value to "*"! Never!
@@ -192,9 +203,17 @@ return {
         -- Endpoint omitted - will use default https://api.openai.com
       },
 
+      copilot = {
+        endpoint = "https://api.githubcopilot.com",
+        model = "gpt-4",
+        proxy = nil,
+        allow_insecure = false,
+        timeout = 30000,
+      },
+
       -- Gemini configuration
       gemini = {
-        model = "gemini-2.5-pro",
+        -- model = "gemini-2.5-pro",
         temperature = 0.1,
         max_tokens = 4096,
         -- Endpoint omitted - will use Google's default API endpoint
