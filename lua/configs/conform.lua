@@ -10,12 +10,6 @@ local options = {
     haskell = { "stylish-haskell" },
     terraform = { "terraform_fmt" },
   },
-
-  -- format_on_save = {
-  --   -- These options will be passed to conform.format()
-  --   timeout_ms = 500,
-  --   lsp_fallback = true,
-  -- },
 }
 
 return options

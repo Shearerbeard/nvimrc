@@ -92,8 +92,12 @@ return {
       local map = vim.keymap.set
       map("n", "<leader>ft", "<cmd>TodoTelescope<cr>", { desc = "Find todos" })
       map("n", "<leader>fT", "<cmd>TodoTrouble<cr>", { desc = "Todo Trouble" })
-      map("n", "]t", function() require("todo-comments").jump_next() end, { desc = "Next todo comment" })
-      map("n", "[t", function() require("todo-comments").jump_prev() end, { desc = "Previous todo comment" })
+      map("n", "]t", function()
+        require("todo-comments").jump_next()
+      end, { desc = "Next todo comment" })
+      map("n", "[t", function()
+        require("todo-comments").jump_prev()
+      end, { desc = "Previous todo comment" })
     end,
     config = function()
       require("todo-comments").setup()
@@ -167,10 +171,10 @@ return {
     cmd = "Copilot",
     event = "InsertEnter",
     config = function()
-      require("copilot").setup({
+      require("copilot").setup {
         suggestion = { enabled = false },
         panel = { enabled = false },
-      })
+      }
     end,
   },
   {
@@ -181,42 +185,69 @@ return {
       -- add any opts here
       -- for example
       -- provider = "openai",
-      provider = "claude",
+      provider = "gemini",
       mode = "agentic",
       -- Claude with thinking mode
-      claude = {
-        model = "claude-3-7-sonnet-20250219",
-        temperature = 1,
-        max_tokens = 4096,
-        thinking = {
-          type = "enabled",
-          budget_tokens = 2048,
+      providers = {
+        claude = {
+          -- model = "claude-3-7-sonnet-20250219",
+          model = "claude-sonnet-4-20250514",
+          thinking = {
+            type = "enabled",
+            budget_tokens = 2048,
+          },
+          extra_request_body = {
+            temperature = 1,
+            max_tokens = 20480,
+          },
+          -- Endpoint omitted - will use default https://api.anthropic.com
         },
-        -- Endpoint omitted - will use default https://api.anthropic.com
-      },
 
-      -- OpenAI configuration
-      openai = {
-        model = "gpt-4.1",
-        temperature = 0.1,
-        max_tokens = 4096,
-        -- Endpoint omitted - will use default https://api.openai.com
-      },
+        -- OpenAI configuration
+        openai = {
+          model = "gpt-4.1",
+          max_tokens = 4096,
+          extra_request_body = {
+            temperature = 0.1,
+          },
+          -- Endpoint omitted - will use default https://api.openai.com
+        },
 
-      copilot = {
-        endpoint = "https://api.githubcopilot.com",
-        model = "gpt-4",
-        proxy = nil,
-        allow_insecure = false,
-        timeout = 30000,
-      },
+        copilot = {
+          endpoint = "https://api.githubcopilot.com",
+          model = "gpt-4",
+          proxy = nil,
+          allow_insecure = false,
+          timeout = 30000,
+        },
 
-      -- Gemini configuration
-      gemini = {
-        -- model = "gemini-2.5-pro",
-        temperature = 0.1,
-        max_tokens = 4096,
-        -- Endpoint omitted - will use Google's default API endpoint
+        -- Gemini configuration
+        gemini = {
+          -- model = "gemini-2.5-flash",
+          -- model = "gemini-2.0-pro-exp-02-05"
+          model = "gemini-2.5-pro",
+          thinking = {
+            type = "enabled",
+          },
+          -- Endpoint omitted - will use Google's default API endpoint
+        },
+
+        -- Ollama
+        ollama = {
+          endpoint = "http://127.0.0.1:11434",
+          timeout = 30000, -- Timeout in milliseconds
+          model = "deepseek-coder-v2:latest",
+          extra_request_body = {
+            options = {
+              temperature = 0.75,
+              num_ctx = 20480,
+              keep_alive = "4m",
+            },
+          },
+        },
+      },
+      web_search_engine = {
+        provider = "searxng",
       },
     },
     -- if you want to build from source then do `make BUILD_FROM_SOURCE=true`
