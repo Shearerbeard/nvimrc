@@ -1,0 +1,16 @@
+--- a/lua/nvchad/nvdash/init.lua
++++ b/lua/nvchad/nvdash/init.lua
+@@ -204,6 +204,14 @@ local key_movements = function(n, cmd)
+       end
+     end
+   end
++
++  -- Fallback: return first key position if no match found
++  if key_lines[1] then
++    return { key_lines[1].i, key_lines[1].col }
++  end
++  -- Ultimate fallback: return current position
++  return { curline, 0 }
+ end
+ 
+ map({ "k", "<up>" }, function()

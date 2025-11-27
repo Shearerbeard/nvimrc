@@ -17,5 +17,30 @@ map("", "<leader>ca",
   { desc = "LSP code action" }
 )
 
+-- Inlay hints toggle
+map("n", "<leader>lh", function()
+  vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled())
+end, { desc = "Toggle Inlay Hints" })
+
+-- Rust-specific keymaps (only work in Rust files)
+map("n", "<leader>rr", "<cmd>RustLsp runnables<cr>", { desc = "Rust Runnables" })
+map("n", "<leader>rd", "<cmd>RustLsp debuggables<cr>", { desc = "Rust Debuggables" })
+map("n", "<leader>re", "<cmd>RustLsp expandMacro<cr>", { desc = "Rust Expand Macro" })
+map("n", "<leader>rc", "<cmd>RustLsp openCargo<cr>", { desc = "Rust Open Cargo.toml" })
+map("n", "<leader>rp", "<cmd>RustLsp parentModule<cr>", { desc = "Rust Parent Module" })
+map("n", "<leader>rm", "<cmd>RustLsp rebuildProcMacros<cr>", { desc = "Rust Rebuild Proc Macros" })
+
+-- Git signs keymaps
+map("n", "<leader>gp", "<cmd>Gitsigns preview_hunk<cr>", { desc = "Preview Git Hunk" })
+map("n", "<leader>gb", "<cmd>Gitsigns blame_line<cr>", { desc = "Git Blame Line" })
+map("n", "<leader>gh", "<cmd>Gitsigns reset_hunk<cr>", { desc = "Reset Git Hunk" })
+map("n", "]h", "<cmd>Gitsigns next_hunk<cr>", { desc = "Next Git Hunk" })
+map("n", "[h", "<cmd>Gitsigns prev_hunk<cr>", { desc = "Previous Git Hunk" })
+
+-- Diagnostic keymaps (additional to NvChad defaults)
+map("n", "<leader>ld", "<cmd>Telescope diagnostics<cr>", { desc = "List Diagnostics" })
+map("n", "<leader>ll", function()
+  vim.diagnostic.open_float()
+end, { desc = "Show Line Diagnostics" })
 
 -- map({ "n", "i", "v" }, "<C-s>", "<cmd> w <cr>")

@@ -1,64 +1,49 @@
 -- load defaults i.e lua_lsp
 require("nvchad.configs.lspconfig").defaults()
 
-local lspconfig = require "lspconfig"
+local nvlsp = require "nvchad.configs.lspconfig"
 
--- EXAMPLE
-local servers = {
+-- Define server configurations using vim.lsp.config
+-- This is the new Neovim 0.11+ API that replaces require('lspconfig')
+
+-- NOTE: rust_analyzer is now configured via rustaceanvim plugin
+-- See lua/plugins/init.lua for Rust configuration
+
+-- Configure denols with custom settings
+vim.lsp.config("denols", {
+  cmd = { "deno", "lsp" },
+  root_markers = { "deno.json", "deno.jsonc" },
+  on_attach = nvlsp.on_attach,
+  on_init = nvlsp.on_init,
+  capabilities = nvlsp.capabilities,
+  init_options = {
+    enable = true,
+    lint = true,
+    unstable = false,
+  }
+})
+
+-- Configure servers with default settings
+local simple_servers = {
   "html",
   "cssls",
-  "rust_analyzer",
   "dockerls",
   "docker_compose_language_service",
   "ts_ls",
   "hls",
   "gopls",
-  "denols"
 }
 
-local nvlsp = require "nvchad.configs.lspconfig"
-
--- lsps with default config
-for _, lsp in ipairs(servers) do
-  if lsp == "rust_analyzer" then
-    lspconfig.rust_analyzer.setup {
-      settings = {
-        ["rust-analyzer"] = {
-          checkOnSave = {
-            command = "clippy",
-            allFeatures = true,
-            loadOutDirsFromCheck = true,
-          },
-          cargo = {
-            allFeatures = true,
-          },
-          procMacro = {
-            enable = true,
-          }
-        },
-      },
-      on_attach = nvlsp.on_attach,
-      on_init = nvlsp.on_init,
-      capabilities = nvlsp.capabilities,
-    }
-  elseif lsp == "denols" then
-      lspconfig.denols.setup {
-        on_attach = nvlsp.on_attach,
-        on_init = nvlsp.on_init,
-        capabilities = nvlsp.capabilities,
-        root_dir = lspconfig.util.root_pattern("deno.json", "deno.jsonc"),
-        init_options = {
-          enable = true,
-          lint = true,
-          unstable = false,
-        }
-      }
-  else
-    lspconfig[lsp].setup {
-      on_attach = nvlsp.on_attach,
-      on_init = nvlsp.on_init,
-      capabilities = nvlsp.capabilities,
-    }
-  end
+for _, server in ipairs(simple_servers) do
+  vim.lsp.config(server, {
+    on_attach = nvlsp.on_attach,
+    on_init = nvlsp.on_init,
+    capabilities = nvlsp.capabilities,
+  })
 end
+
+-- Enable all configured servers
+-- Note: rust_analyzer is handled by rustaceanvim plugin
+local all_servers = vim.list_extend(vim.deepcopy(simple_servers), { "denols" })
+vim.lsp.enable(all_servers)
 

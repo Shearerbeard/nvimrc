@@ -106,7 +106,7 @@ return {
   -- DAP (Debug Adapter Protocol)
   {
     "mfussenegger/nvim-dap",
-    ft = "go", -- Load only for Go files
+    ft = { "go", "rust" }, -- Load for Go and Rust files
     init = function()
       -- Load your keymappings here
       local map = vim.keymap.set
@@ -115,6 +115,55 @@ return {
       map("n", "<leader>do", ":lua require'dap'.step_over()<CR>", { desc = "Step Over" })
       map("n", "<leader>di", ":lua require'dap'.step_into()<CR>", { desc = "Step Into" })
       map("n", "<leader>dr", ":lua require'dap'.repl.open()<CR>", { desc = "Open REPL" })
+    end,
+    config = function()
+      local dap = require("dap")
+
+      -- Rust debugging with codelldb
+      dap.adapters.codelldb = {
+        type = "server",
+        port = "${port}",
+        executable = {
+          command = vim.fn.exepath("codelldb") ~= "" and vim.fn.exepath("codelldb")
+            or vim.fn.stdpath("data") .. "/mason/bin/codelldb",
+          args = { "--port", "${port}" },
+        },
+      }
+
+      dap.configurations.rust = {
+        {
+          name = "Launch",
+          type = "codelldb",
+          request = "launch",
+          program = function()
+            return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/target/debug/", "file")
+          end,
+          cwd = "${workspaceFolder}",
+          stopOnEntry = false,
+          args = {},
+        },
+        {
+          name = "Launch with args",
+          type = "codelldb",
+          request = "launch",
+          program = function()
+            return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/target/debug/", "file")
+          end,
+          cwd = "${workspaceFolder}",
+          stopOnEntry = false,
+          args = function()
+            local args_string = vim.fn.input("Arguments: ")
+            return vim.split(args_string, " ")
+          end,
+        },
+        {
+          name = "Attach to process",
+          type = "codelldb",
+          request = "attach",
+          pid = require("dap.utils").pick_process,
+          args = {},
+        },
+      }
     end,
   },
   -- Go DAP extension
@@ -291,5 +340,101 @@ return {
         ft = { "markdown", "Avante" },
       },
     },
+  },
+
+  -- Rust development plugins
+  {
+    "mrcjkb/rustaceanvim",
+    version = "^6",
+    lazy = false, -- Load immediately for Rust files
+    ft = { "rust" },
+    config = function()
+      vim.g.rustaceanvim = {
+        server = {
+          on_attach = function(client, bufnr)
+            -- Use NvChad's on_attach for keymaps and capabilities
+            require("nvchad.configs.lspconfig").on_attach(client, bufnr)
+
+            -- Enable inlay hints
+            if client.server_capabilities.inlayHintProvider then
+              vim.lsp.inlay_hint.enable(true, { bufnr = bufnr })
+            end
+          end,
+          default_settings = {
+            ["rust-analyzer"] = {
+              checkOnSave = {
+                command = "clippy",
+                allFeatures = true,
+                extraArgs = { "--all-targets" },
+              },
+              cargo = {
+                allFeatures = true,
+                loadOutDirsFromCheck = true,
+              },
+              procMacro = {
+                enable = true,
+              },
+              inlayHints = {
+                bindingModeHints = { enable = true },
+                chainingHints = { enable = true },
+                closingBraceHints = { enable = true, minLines = 10 },
+                closureReturnTypeHints = { enable = "with_block" },
+                discriminantHints = { enable = "fieldless" },
+                expressionAdjustmentHints = { enable = "reborrow" },
+                lifetimeElisionHints = { enable = "skip_trivial" },
+                parameterHints = { enable = true },
+                reborrowHints = { enable = "mutable" },
+                renderColons = true,
+                typeHints = {
+                  enable = true,
+                  hideClosureInitialization = false,
+                  hideNamedConstructor = false,
+                },
+              },
+              diagnostics = {
+                enable = true,
+                experimental = {
+                  enable = true,
+                },
+              },
+              completion = {
+                postfix = {
+                  enable = true,
+                },
+                autoimport = {
+                  enable = true,
+                },
+              },
+              lens = {
+                enable = true,
+                references = {
+                  adt = { enable = true },
+                  enumVariant = { enable = true },
+                  method = { enable = true },
+                  trait = { enable = true },
+                },
+              },
+            },
+          },
+        },
+      }
+    end,
+  },
+
+  -- Cargo.toml dependency management
+  {
+    "saecki/crates.nvim",
+    event = { "BufRead Cargo.toml" },
+    config = function()
+      require("crates").setup({
+        -- Use LSP-based completion instead of deprecated cmp completion
+        lsp = {
+          enabled = true,
+          actions = true,
+          completion = true,
+          hover = true,
+        },
+      })
+    end,
   },
 }
