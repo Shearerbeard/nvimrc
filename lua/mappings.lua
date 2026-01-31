@@ -43,4 +43,21 @@ map("n", "<leader>ll", function()
   vim.diagnostic.open_float()
 end, { desc = "Show Line Diagnostics" })
 
+-- Python-specific keymaps
+map("n", "<leader>pr", function()
+  vim.cmd("split | terminal python3 %")
+end, { desc = "Run Python File" })
+map("n", "<leader>pi", function()
+  vim.cmd("split | terminal python3")
+end, { desc = "Python Interactive Shell" })
+
 -- map({ "n", "i", "v" }, "<C-s>", "<cmd> w <cr>")
+
+-- Avante keymaps (<leader>v for aVante, <leader>c for Claude Code)
+map("n", "<leader>vz", function()
+  require("avante.api").zen_mode()
+end, { desc = "Avante Zen Mode" })
+map("n", "<leader>va", "<cmd>AvanteAsk<cr>", { desc = "Avante Ask" })
+map("n", "<leader>vt", "<cmd>AvanteToggle<cr>", { desc = "Avante Toggle" })
+map("n", "<leader>vm", "<cmd>AvanteModels<cr>", { desc = "Avante Models" })
+map("n", "<leader>vp", "<cmd>AvanteProfile<cr>", { desc = "Avante Profile" })

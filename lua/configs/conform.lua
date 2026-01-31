@@ -9,6 +9,7 @@ local options = {
     go = { "gofmt", "golangcli-lint" },
     haskell = { "stylish-haskell" },
     terraform = { "terraform_fmt" },
+    python = { "ruff_format", "ruff_organize_imports" },
   },
 }
 

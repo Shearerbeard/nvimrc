@@ -106,7 +106,7 @@ return {
   -- DAP (Debug Adapter Protocol)
   {
     "mfussenegger/nvim-dap",
-    ft = { "go", "rust" }, -- Load for Go and Rust files
+    ft = { "go", "rust", "python" }, -- Load for Go, Rust, and Python files
     init = function()
       -- Load your keymappings here
       local map = vim.keymap.set
@@ -162,6 +162,64 @@ return {
           request = "attach",
           pid = require("dap.utils").pick_process,
           args = {},
+        },
+      }
+
+      -- Python debugging with debugpy
+      dap.adapters.python = {
+        type = "executable",
+        command = vim.fn.exepath("python3"),
+        args = { "-m", "debugpy.adapter" },
+      }
+
+      dap.configurations.python = {
+        {
+          type = "python",
+          request = "launch",
+          name = "Launch file",
+          program = "${file}",
+          pythonPath = function()
+            -- Use virtual environment if available
+            local cwd = vim.fn.getcwd()
+            if vim.fn.executable(cwd .. "/venv/bin/python") == 1 then
+              return cwd .. "/venv/bin/python"
+            elseif vim.fn.executable(cwd .. "/.venv/bin/python") == 1 then
+              return cwd .. "/.venv/bin/python"
+            else
+              return vim.fn.exepath("python3")
+            end
+          end,
+        },
+        {
+          type = "python",
+          request = "launch",
+          name = "Launch file with args",
+          program = "${file}",
+          args = function()
+            local args_string = vim.fn.input("Arguments: ")
+            return vim.split(args_string, " ")
+          end,
+          pythonPath = function()
+            local cwd = vim.fn.getcwd()
+            if vim.fn.executable(cwd .. "/venv/bin/python") == 1 then
+              return cwd .. "/venv/bin/python"
+            elseif vim.fn.executable(cwd .. "/.venv/bin/python") == 1 then
+              return cwd .. "/.venv/bin/python"
+            else
+              return vim.fn.exepath("python3")
+            end
+          end,
+        },
+        {
+          type = "python",
+          request = "attach",
+          name = "Attach remote",
+          connect = function()
+            local host = vim.fn.input("Host [127.0.0.1]: ")
+            host = host ~= "" and host or "127.0.0.1"
+            local port = tonumber(vim.fn.input("Port [5678]: ")) or 5678
+            return { host = host, port = port }
+          end,
         },
       }
     end,
@@ -231,76 +289,214 @@ return {
     event = "VeryLazy",
     version = false, -- Never set this value to "*"! Never!
     opts = {
-      -- add any opts here
-      -- for example
-      -- provider = "openai",
-      provider = "gemini",
+      -- Default config (can be overridden by :AvanteProfile command)
+      provider = "bedrock",
+      cursor_applying_provider = "bedrock-haiku",
+      auto_suggestions_provider = "bedrock-haiku",
+      memory_summary_provider = "bedrock-haiku",
       mode = "agentic",
+
+      -- MCP Hub integration (LSP diagnostics, tools, resources)
+      system_prompt = function()
+        local hub = require("mcphub").get_hub_instance()
+        return hub and hub:get_active_servers_prompt() or ""
+      end,
+      custom_tools = function()
+        return {
+          require("mcphub.extensions.avante").mcp_tool(),
+        }
+      end,
       -- Claude with thinking mode
       providers = {
+        -- Claude 4.5 Sonnet (balanced speed/intelligence)
         claude = {
-          -- model = "claude-3-7-sonnet-20250219",
-          model = "claude-sonnet-4-20250514",
+          model = "claude-sonnet-4-5-20250929",
           thinking = {
             type = "enabled",
-            budget_tokens = 2048,
+            budget_tokens = 4096,
           },
           extra_request_body = {
             temperature = 1,
-            max_tokens = 20480,
+            max_tokens = 32768,
           },
-          -- Endpoint omitted - will use default https://api.anthropic.com
         },
 
-        -- OpenAI configuration
+        -- Claude 4.5 Opus (most capable)
+        ["claude-opus"] = {
+          __inherited_from = "claude",
+          model = "claude-opus-4-5-20251101",
+        },
+
+        -- Claude 4.5 Haiku (fastest)
+        ["claude-haiku"] = {
+          __inherited_from = "claude",
+          model = "claude-haiku-4-5-20251001",
+        },
+
+        -- OpenAI GPT-5.2 (latest flagship)
         openai = {
-          model = "gpt-4.1",
-          max_tokens = 4096,
+          model = "gpt-5.2",
+          max_tokens = 16384,
           extra_request_body = {
             temperature = 0.1,
           },
-          -- Endpoint omitted - will use default https://api.openai.com
+        },
+
+        -- OpenAI GPT-5.1 (balanced, faster)
+        ["openai-5.1"] = {
+          __inherited_from = "openai",
+          model = "gpt-5.1",
+        },
+
+        -- OpenAI GPT-5.2-Codex (coding optimized)
+        ["openai-codex"] = {
+          __inherited_from = "openai",
+          model = "gpt-5.2-codex",
         },
 
         copilot = {
           endpoint = "https://api.githubcopilot.com",
-          model = "gpt-4",
+          model = "gpt-5.2",
           proxy = nil,
           allow_insecure = false,
           timeout = 30000,
         },
 
-        -- Gemini configuration
+        -- Gemini 3 Pro (reasoning-first, 1M context)
         gemini = {
-          -- model = "gemini-2.5-flash",
-          -- model = "gemini-2.0-pro-exp-02-05"
-          model = "gemini-2.5-pro",
+          model = "gemini-3-pro-preview",
           thinking = {
             type = "enabled",
           },
-          -- Endpoint omitted - will use Google's default API endpoint
         },
 
-        -- Ollama
+        -- Gemini 3 Flash (faster, cheaper)
+        ["gemini-flash"] = {
+          __inherited_from = "gemini",
+          model = "gemini-3-flash-preview",
+        },
+
+        -- Ollama - Qwen3-Coder 30B (fits 24GB, best open-source coding)
         ollama = {
           endpoint = "http://127.0.0.1:11434",
-          timeout = 30000, -- Timeout in milliseconds
-          model = "deepseek-coder-v2:latest",
+          timeout = 30000,
+          model = "qwen3-coder:30b",
           extra_request_body = {
             options = {
-              temperature = 0.75,
-              num_ctx = 20480,
+              temperature = 0.7,
+              top_p = 0.8,
+              top_k = 20,
+              num_ctx = 32768,
               keep_alive = "4m",
             },
           },
         },
+
+        -- Devstral 24B (Mistral's coding model)
+        ["ollama-devstral"] = {
+          __inherited_from = "ollama",
+          model = "devstral:24b",
+        },
+
+        -- AWS Bedrock providers
+        bedrock = {
+          model = "anthropic.claude-sonnet-4-5-20250929-v1:0",
+          aws_region = "us-east-1",
+          -- aws_profile = "default",  -- uncomment to use specific profile
+        },
+
+        -- Bedrock Claude Opus
+        ["bedrock-opus"] = {
+          __inherited_from = "bedrock",
+          model = "anthropic.claude-opus-4-5-20251101-v1:0",
+        },
+
+        -- Bedrock Claude Haiku (fast/cheap)
+        ["bedrock-haiku"] = {
+          __inherited_from = "bedrock",
+          model = "anthropic.claude-haiku-4-5-20251001-v1:0",
+        },
+
+        -- Bedrock Qwen3-Coder 480B
+        ["bedrock-qwen"] = {
+          __inherited_from = "bedrock",
+          model = "qwen.qwen3-coder-480b-a35b-instruct-v1:0",
+        },
+
+        -- Bedrock Qwen3-Coder 30B (lighter)
+        ["bedrock-qwen-30b"] = {
+          __inherited_from = "bedrock",
+          model = "qwen.qwen3-coder-30b-a3b-instruct-v1:0",
+        },
+
+        -- Bedrock DeepSeek V3.1 (685B, best for coding)
+        ["bedrock-deepseek"] = {
+          __inherited_from = "bedrock",
+          model = "deepseek.deepseek-v3-1-v1:0",
+        },
+
+        -- Bedrock DeepSeek R1 (reasoning/thinking mode)
+        ["bedrock-deepseek-r1"] = {
+          __inherited_from = "bedrock",
+          model = "deepseek.deepseek-r1-v1:0",
+        },
+
+        -- Bedrock Llama 4 Maverick (400B, 1M context)
+        ["bedrock-llama"] = {
+          __inherited_from = "bedrock",
+          model = "us.meta.llama4-maverick-17b-instruct-v1:0",
+        },
+
+        -- Bedrock Llama 4 Scout (3.5M context)
+        ["bedrock-llama-scout"] = {
+          __inherited_from = "bedrock",
+          model = "us.meta.llama4-scout-17b-instruct-v1:0",
+        },
       },
+      -- Web search: brave (fastest, best quality) or tavily (AI-optimized)
+      -- Requires BRAVE_API_KEY or TAVILY_API_KEY env var
       web_search_engine = {
-        provider = "searxng",
+        provider = "brave", -- brave, tavily, kagi, google, serpapi, searxng
+      },
+
+      -- ACP providers (external coding CLIs)
+      acp_providers = {
+        ["claude-code"] = {
+          command = "claude",
+          args = { "acp" },
+        },
+        ["opencode"] = {
+          command = "opencode",
+          args = { "acp" },
+        },
+        ["gemini-cli"] = {
+          command = "gemini",
+          args = { "--experimental-acp" },
+          env = {
+            NODE_NO_WARNINGS = "1",
+            GEMINI_API_KEY = os.getenv("GEMINI_API_KEY"),
+          },
+        },
+      },
+
+      behaviour = {
+        auto_approve_tool_permissions = true,
+        confirmation_ui_style = "inline_buttons",
+        acp_follow_agent_locations = true,
+      },
+
+      -- Prompt logger for debugging/replay
+      prompt_logger = {
+        enabled = true,
+        log_dir = vim.fn.stdpath("cache") .. "/avante_prompts",
       },
     },
     -- if you want to build from source then do `make BUILD_FROM_SOURCE=true`
     build = "make",
+    config = function(_, opts)
+      require("avante").setup(opts)
+      require("configs.avante-profiles").setup()
+    end,
     -- build = "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource false" -- for windows
     dependencies = {
       "nvim-treesitter/nvim-treesitter",
@@ -314,6 +510,7 @@ return {
       "ibhagwan/fzf-lua", -- for file_selector provider fzf
       "nvim-tree/nvim-web-devicons", -- or echasnovski/mini.icons
       "zbirenbaum/copilot.lua", -- for providers='copilot'
+      "ravitemer/mcphub.nvim", -- MCP Hub integration
       {
         -- support for image pasting
         "HakonHarnes/img-clip.nvim",
@@ -436,5 +633,73 @@ return {
         },
       })
     end,
+  },
+
+  -- Python development plugins
+  {
+    "nvim-treesitter/nvim-treesitter",
+    opts = function(_, opts)
+      -- Ensure Python treesitter parser is installed
+      if type(opts.ensure_installed) == "table" then
+        vim.list_extend(opts.ensure_installed, { "python" })
+      end
+    end,
+  },
+
+  -- MCP Hub - manage MCP servers for AI assistants
+  {
+    "ravitemer/mcphub.nvim",
+    dependencies = { "nvim-lua/plenary.nvim" },
+    build = "npm install -g mcp-hub@latest",
+    config = function()
+      require("mcphub").setup({
+        -- Auto-start servers when needed
+        auto_start = true,
+        -- Extensions for chat plugins
+        extensions = {
+          avante = {
+            make_slash_commands = true,
+          },
+        },
+      })
+    end,
+    keys = {
+      { "<leader>mh", "<cmd>MCPHub<cr>", desc = "MCP Hub" },
+    },
+  },
+
+  -- MCP Diagnostics - share LSP diagnostics with AI
+  {
+    "georgeharker/mcp-diagnostics.nvim",
+    dependencies = { "ravitemer/mcphub.nvim" },
+    config = function()
+      require("mcp-diagnostics").setup({
+        -- Register with mcphub
+        mcphub = {
+          enabled = true,
+        },
+      })
+    end,
+  },
+
+  -- Claude Code integration (edit from Claude CLI)
+  {
+    "coder/claudecode.nvim",
+    dependencies = { "folke/snacks.nvim" },
+    config = true,
+    keys = {
+      { "<leader>c", nil, desc = "Claude Code" },
+      { "<leader>cc", "<cmd>ClaudeCode<cr>", desc = "Toggle Claude" },
+      { "<leader>cf", "<cmd>ClaudeCodeFocus<cr>", desc = "Focus Claude" },
+      { "<leader>cr", "<cmd>ClaudeCode --resume<cr>", desc = "Resume" },
+      { "<leader>cC", "<cmd>ClaudeCode --continue<cr>", desc = "Continue" },
+      { "<leader>cm", "<cmd>ClaudeCodeSelectModel<cr>", desc = "Select model" },
+      { "<leader>cb", "<cmd>ClaudeCodeAdd %<cr>", desc = "Add buffer" },
+      { "<leader>cs", "<cmd>ClaudeCodeSend<cr>", mode = "v", desc = "Send selection" },
+      { "<leader>cs", "<cmd>ClaudeCodeTreeAdd<cr>", desc = "Add file",
+        ft = { "NvimTree", "neo-tree", "oil", "minifiles" } },
+      { "<leader>cy", "<cmd>ClaudeCodeDiffAccept<cr>", desc = "Accept diff" },
+      { "<leader>cn", "<cmd>ClaudeCodeDiffDeny<cr>", desc = "Deny diff" },
+    },
   },
 }
