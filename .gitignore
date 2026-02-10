@@ -39,3 +39,12 @@ macros/
 
 # LSP files
 .luarc.json
+
+# Claude Code artifacts
+.claude/
+TODO.md
+HANDOFF.md
+PYTHON_SETUP_GUIDE.md
+
+# Environment / secrets
+.env*

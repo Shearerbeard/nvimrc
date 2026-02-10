@@ -5,6 +5,18 @@ return {
     opts = require "configs.conform",
   },
 
+  -- Terminal toggle (required by haskell-tools repl)
+  {
+    "akinsho/toggleterm.nvim",
+    version = "*",
+    lazy = false,
+    opts = {
+      open_mapping = [[<C-\>]],
+      direction = "horizontal",
+      size = 15,
+    },
+  },
+
   -- These are some examples, uncomment them if you want to see them work!
   {
     "neovim/nvim-lspconfig",
@@ -106,7 +118,7 @@ return {
   -- DAP (Debug Adapter Protocol)
   {
     "mfussenegger/nvim-dap",
-    ft = { "go", "rust", "python" }, -- Load for Go, Rust, and Python files
+    ft = { "go", "rust", "python", "haskell" }, -- Load for Go, Rust, Python, and Haskell files
     init = function()
       -- Load your keymappings here
       local map = vim.keymap.set
@@ -115,6 +127,10 @@ return {
       map("n", "<leader>do", ":lua require'dap'.step_over()<CR>", { desc = "Step Over" })
       map("n", "<leader>di", ":lua require'dap'.step_into()<CR>", { desc = "Step Into" })
       map("n", "<leader>dr", ":lua require'dap'.repl.open()<CR>", { desc = "Open REPL" })
+      map("n", "<leader>dO", ":lua require'dap'.step_out()<CR>", { desc = "Step Out" })
+      map("n", "<leader>dt", ":lua require'dap'.terminate()<CR>", { desc = "Terminate" })
+      map("n", "<leader>dB", ":lua require'dap'.set_breakpoint(vim.fn.input('Condition: '))<CR>", { desc = "Conditional Breakpoint" })
+      map("n", "<leader>dl", ":lua require'dap'.run_last()<CR>", { desc = "Run Last" })
     end,
     config = function()
       local dap = require("dap")
@@ -222,6 +238,44 @@ return {
           end,
         },
       }
+
+      -- Haskell debugging with haskell-debug-adapter
+      dap.adapters.haskell = {
+        type = "executable",
+        command = "haskell-debug-adapter",
+        args = { "--hackage-version=0.0.33.0" },
+      }
+
+      dap.configurations.haskell = {
+        {
+          type = "haskell",
+          request = "launch",
+          name = "Launch (stack)",
+          workspace = "${workspaceFolder}",
+          startup = "${file}",
+          stopOnEntry = true,
+          logFile = vim.fn.stdpath("data") .. "/haskell-dap.log",
+          logLevel = "WARNING",
+          ghciEnv = vim.empty_dict(),
+          ghciPrompt = "λ: ",
+          ghciInitialPrompt = "λ: ",
+          ghciCmd = "stack ghci --test --no-load --no-build --main-is TARGET --ghci-options -fprint-evld-with-show",
+        },
+        {
+          type = "haskell",
+          request = "launch",
+          name = "Launch (cabal)",
+          workspace = "${workspaceFolder}",
+          startup = "${file}",
+          stopOnEntry = true,
+          logFile = vim.fn.stdpath("data") .. "/haskell-dap.log",
+          logLevel = "WARNING",
+          ghciEnv = vim.empty_dict(),
+          ghciPrompt = "λ: ",
+          ghciInitialPrompt = "λ: ",
+          ghciCmd = "cabal repl --repl-options=-fprint-evld-with-show",
+        },
+      }
     end,
   },
   -- Go DAP extension
@@ -229,6 +283,10 @@ return {
     "leoluz/nvim-dap-go",
     ft = "go",
     dependencies = "mfussenegger/nvim-dap",
+    keys = {
+      { "<leader>dgt", function() require("dap-go").debug_test() end, desc = "Debug Test (Go)", ft = "go" },
+      { "<leader>dgl", function() require("dap-go").debug_last_test() end, desc = "Debug Last Test (Go)", ft = "go" },
+    },
     config = function(_, opts)
       -- require("dap-go")
       require "configs.dap-go" -- Import the config file
@@ -242,7 +300,7 @@ return {
       "nvim-neotest/nvim-nio",
       "mfussenegger/nvim-dap",
     },
-    lazy = false,
+    ft = { "go", "rust", "python", "haskell" },
     config = function()
       local dap = require "dap"
       local dapui = require "dapui"
@@ -255,13 +313,9 @@ return {
         require("dapui").toggle()
       end, { desc = "Toggle DAP UI" })
 
-      -- Debug the keymap by printing when it's set
-      print "DAP-UI keymap set: <leader>du"
-
       -- Add event listeners to automatically open UI
       dap.listeners.after.event_initialized["dapui_config"] = function()
         dapui.open()
-        print "DAP-UI opened automatically"
       end
 
       dap.listeners.before.event_terminated["dapui_config"] = function()
@@ -348,11 +402,19 @@ return {
           model = "gpt-5.1",
         },
 
-        -- OpenAI GPT-5.2-Codex (coding optimized)
+        -- OpenAI GPT-5.1-Codex (coding optimized, API available)
         ["openai-codex"] = {
           __inherited_from = "openai",
-          model = "gpt-5.2-codex",
+          model = "gpt-5.1-codex",
         },
+
+        -- OpenAI GPT-5.1-Codex-Max (extended context/capability)
+        ["openai-codex-max"] = {
+          __inherited_from = "openai",
+          model = "gpt-5.1-codex-max",
+        },
+
+        -- NOTE: gpt-5.2-codex not yet available via API (ChatGPT/Codex app only)
 
         copilot = {
           endpoint = "https://api.githubcopilot.com",
@@ -398,60 +460,35 @@ return {
           model = "devstral:24b",
         },
 
-        -- AWS Bedrock providers
+        -- AWS Bedrock providers (using inference profile IDs with us. prefix)
         bedrock = {
-          model = "anthropic.claude-sonnet-4-5-20250929-v1:0",
-          aws_region = "us-east-1",
-          -- aws_profile = "default",  -- uncomment to use specific profile
+          model = "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+          aws_region = os.getenv("AWS_REGION") or "us-east-1",
+          aws_profile = os.getenv("AWS_PROFILE") or "default",
         },
 
         -- Bedrock Claude Opus
         ["bedrock-opus"] = {
           __inherited_from = "bedrock",
-          model = "anthropic.claude-opus-4-5-20251101-v1:0",
+          model = "us.anthropic.claude-opus-4-5-20251101-v1:0",
         },
 
         -- Bedrock Claude Haiku (fast/cheap)
         ["bedrock-haiku"] = {
           __inherited_from = "bedrock",
-          model = "anthropic.claude-haiku-4-5-20251001-v1:0",
+          model = "us.anthropic.claude-haiku-4-5-20251001-v1:0",
         },
 
-        -- Bedrock Qwen3-Coder 480B
-        ["bedrock-qwen"] = {
-          __inherited_from = "bedrock",
-          model = "qwen.qwen3-coder-480b-a35b-instruct-v1:0",
-        },
+        -- NOTE: Bedrock Qwen/Mistral removed - Avante only has Claude handler
 
-        -- Bedrock Qwen3-Coder 30B (lighter)
-        ["bedrock-qwen-30b"] = {
-          __inherited_from = "bedrock",
-          model = "qwen.qwen3-coder-30b-a3b-instruct-v1:0",
-        },
-
-        -- Bedrock DeepSeek V3.1 (685B, best for coding)
+        -- Bedrock DeepSeek V3 (coding model)
         ["bedrock-deepseek"] = {
           __inherited_from = "bedrock",
-          model = "deepseek.deepseek-v3-1-v1:0",
+          model = "us.deepseek.deepseek-v3-0324-v1:0",
+          disable_tools = true,
         },
 
-        -- Bedrock DeepSeek R1 (reasoning/thinking mode)
-        ["bedrock-deepseek-r1"] = {
-          __inherited_from = "bedrock",
-          model = "deepseek.deepseek-r1-v1:0",
-        },
-
-        -- Bedrock Llama 4 Maverick (400B, 1M context)
-        ["bedrock-llama"] = {
-          __inherited_from = "bedrock",
-          model = "us.meta.llama4-maverick-17b-instruct-v1:0",
-        },
-
-        -- Bedrock Llama 4 Scout (3.5M context)
-        ["bedrock-llama-scout"] = {
-          __inherited_from = "bedrock",
-          model = "us.meta.llama4-scout-17b-instruct-v1:0",
-        },
+        -- NOTE: Bedrock Llama removed - expects raw prompt format, not Messages API
       },
       -- Web search: brave (fastest, best quality) or tavily (AI-optimized)
       -- Requires BRAVE_API_KEY or TAVILY_API_KEY env var
@@ -480,7 +517,7 @@ return {
       },
 
       behaviour = {
-        auto_approve_tool_permissions = true,
+        auto_approve_tool_permissions = false,
         confirmation_ui_style = "inline_buttons",
         acp_follow_agent_locations = true,
       },
@@ -539,13 +576,98 @@ return {
     },
   },
 
+  -- Haskell development plugins
+  {
+    "mrcjkb/haskell-tools.nvim",
+    version = "^4",
+    ft = { "haskell", "lhaskell", "cabal", "cabalproject" },
+    init = function()
+      local nvlsp = require("nvchad.configs.lspconfig")
+
+      vim.g.haskell_tools = {
+        hls = {
+          on_attach = function(client, bufnr, ht_opts)
+            -- Use NvChad's on_attach for keymaps and capabilities
+            nvlsp.on_attach(client, bufnr)
+
+            -- Enable inlay hints
+            if client.server_capabilities.inlayHintProvider then
+              vim.lsp.inlay_hint.enable(true, { bufnr = bufnr })
+            end
+          end,
+          capabilities = nvlsp.capabilities,
+          settings = {
+            haskell = {
+              -- Formatter (fourmolu configured in conform.nvim)
+              formattingProvider = "fourmolu",
+              -- Enable all HLS plugins
+              plugin = {
+                -- Type lenses (show type signatures)
+                class = { codeLensOn = true },
+                -- Import lenses
+                importLens = { codeLensOn = true },
+                -- Refactor tools
+                refineImports = { codeLensOn = true },
+                -- hlint integration
+                hlint = { globalOn = true },
+                -- Eval plugin (evaluate code in comments)
+                eval = { globalOn = true },
+                -- Module name suggestions
+                moduleName = { globalOn = true },
+                -- Pragmas completions
+                pragmas = { globalOn = true },
+                -- Rename plugin
+                rename = { globalOn = true },
+                -- Retrie refactoring
+                retrie = { globalOn = true },
+                -- Splice plugin (Template Haskell)
+                splice = { globalOn = true },
+                -- Tactics/Wingman for code generation
+                tactics = { globalOn = true },
+              },
+              -- Check the project on save
+              checkProject = true,
+            },
+          },
+        },
+        tools = {
+          -- Hoogle integration
+          hoogle = {
+            mode = "auto", -- 'auto', 'telescope-local', 'telescope-web', 'browser'
+          },
+          -- REPL tools
+          repl = {
+            handler = "toggleterm", -- 'builtin' or 'toggleterm'
+            prefer = function()
+              -- Prefer cabal if cabal.project exists, otherwise stack
+              if vim.fn.filereadable("cabal.project") == 1 then
+                return "cabal"
+              elseif vim.fn.filereadable("stack.yaml") == 1 then
+                return "stack"
+              else
+                return "cabal"
+              end
+            end,
+          },
+          -- Code lens
+          codeLens = {
+            autoRefresh = true,
+          },
+          -- Definition handler
+          definition = {
+            hoogle_signature_fallback = true,
+          },
+        },
+      }
+    end,
+  },
+
   -- Rust development plugins
   {
     "mrcjkb/rustaceanvim",
     version = "^6",
-    lazy = false, -- Load immediately for Rust files
     ft = { "rust" },
-    config = function()
+    init = function()
       vim.g.rustaceanvim = {
         server = {
           on_attach = function(client, bufnr)
@@ -622,6 +744,13 @@ return {
   {
     "saecki/crates.nvim",
     event = { "BufRead Cargo.toml" },
+    keys = {
+      { "<leader>Rc", function() require("crates").show_crate_popup() end, desc = "Show Crate Info", ft = "toml" },
+      { "<leader>Rv", function() require("crates").show_versions_popup() end, desc = "Show Versions", ft = "toml" },
+      { "<leader>Rf", function() require("crates").show_features_popup() end, desc = "Show Features", ft = "toml" },
+      { "<leader>Ru", function() require("crates").update_crate() end, desc = "Update Crate", ft = "toml" },
+      { "<leader>Ra", function() require("crates").update_all_crates() end, desc = "Update All Crates", ft = "toml" },
+    },
     config = function()
       require("crates").setup({
         -- Use LSP-based completion instead of deprecated cmp completion
@@ -686,14 +815,21 @@ return {
   {
     "coder/claudecode.nvim",
     dependencies = { "folke/snacks.nvim" },
-    config = true,
+    -- config = true,
+    lazy = false,
+    opts = {
+      auto_start = true,
+      diff = {
+        open_in_new_tab = true,  -- Full tab for cleaner diff view
+      },
+    },
     keys = {
       { "<leader>c", nil, desc = "Claude Code" },
       { "<leader>cc", "<cmd>ClaudeCode<cr>", desc = "Toggle Claude" },
       { "<leader>cf", "<cmd>ClaudeCodeFocus<cr>", desc = "Focus Claude" },
       { "<leader>cr", "<cmd>ClaudeCode --resume<cr>", desc = "Resume" },
       { "<leader>cC", "<cmd>ClaudeCode --continue<cr>", desc = "Continue" },
-      { "<leader>cm", "<cmd>ClaudeCodeSelectModel<cr>", desc = "Select model" },
+      { "<leader>cM", "<cmd>ClaudeCodeSelectModel<cr>", desc = "Select model" },
       { "<leader>cb", "<cmd>ClaudeCodeAdd %<cr>", desc = "Add buffer" },
       { "<leader>cs", "<cmd>ClaudeCodeSend<cr>", mode = "v", desc = "Send selection" },
       { "<leader>cs", "<cmd>ClaudeCodeTreeAdd<cr>", desc = "Add file",

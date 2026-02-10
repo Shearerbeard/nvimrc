@@ -28,7 +28,7 @@ M.profiles = {
     memory_summary_provider = "openai-5.1",
   },
 
-  -- OpenAI GPT-5.2-Codex (coding optimized)
+  -- OpenAI GPT-5.1-Codex (coding optimized)
   ["openai-codex"] = {
     provider = "openai-codex",
     cursor_applying_provider = "openai-5.1",
@@ -44,21 +44,18 @@ M.profiles = {
     memory_summary_provider = "gemini-flash",
   },
 
-  -- Bedrock Qwen3-Coder (managed, great for coding)
-  ["bedrock-qwen"] = {
-    provider = "bedrock-qwen",
-    cursor_applying_provider = "bedrock-qwen-30b",
-    auto_suggestions_provider = "bedrock-qwen-30b",
-    memory_summary_provider = "bedrock-qwen-30b",
-  },
+  -- NOTE: Bedrock Qwen/Mistral profiles removed - Avante only has Claude handler
 
-  -- Bedrock DeepSeek V3.1 (685B, excellent for coding)
+  -- Bedrock DeepSeek V3 (coding model, untested)
   ["bedrock-deepseek"] = {
     provider = "bedrock-deepseek",
+    mode = "legacy",
     cursor_applying_provider = "bedrock-haiku",
     auto_suggestions_provider = "bedrock-haiku",
     memory_summary_provider = "bedrock-haiku",
   },
+
+  -- NOTE: Bedrock Llama removed - expects raw prompt format, not Messages API
 
   -- Local Qwen3-Coder 30B (fits 24GB, best open-source coding)
   ["qwen-local"] = {
@@ -109,11 +106,11 @@ function M.switch(profile_name)
     return
   end
 
-  local config = require("avante.config")
+  local Config = require("avante.config")
 
-  -- Update config
+  -- Update config (using new API - direct property access)
   for key, value in pairs(profile) do
-    config.options[key] = value
+    Config[key] = value
   end
 
   vim.notify("Switched to Avante profile: " .. profile_name, vim.log.levels.INFO)
@@ -123,10 +120,22 @@ function M.setup()
   -- Create :AvanteProfile command
   vim.api.nvim_create_user_command("AvanteProfile", function(opts)
     if opts.args == "" then
-      -- Show current and available profiles
-      local current = require("avante.config").options.provider or "unknown"
-      local available = table.concat(vim.tbl_keys(M.profiles), ", ")
-      vim.notify("Current provider: " .. current .. "\nProfiles: " .. available, vim.log.levels.INFO)
+      -- Interactive selection
+      local current = require("avante.config").provider or "unknown"
+      local profile_names = vim.tbl_keys(M.profiles)
+      table.sort(profile_names)
+
+      vim.ui.select(profile_names, {
+        prompt = "Select Avante Profile (current: " .. current .. ")",
+        format_item = function(item)
+          local profile = M.profiles[item]
+          return item .. " → " .. (profile.provider or "unknown")
+        end,
+      }, function(choice)
+        if choice then
+          M.switch(choice)
+        end
+      end)
     else
       M.switch(opts.args)
     end

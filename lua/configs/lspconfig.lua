@@ -69,13 +69,14 @@ vim.lsp.config("ruff", {
 })
 
 -- Configure servers with default settings
+-- NOTE: hls is now configured via haskell-tools.nvim plugin
+-- See lua/plugins/init.lua for Haskell configuration
 local simple_servers = {
   "html",
   "cssls",
   "dockerls",
   "docker_compose_language_service",
   "ts_ls",
-  "hls",
   "gopls",
 }
 

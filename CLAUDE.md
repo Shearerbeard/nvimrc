@@ -12,11 +12,10 @@ Switch complete provider configs with delegated models for fast operations:
 |---------|------------|--------------|------|
 | `bedrock` | Claude Sonnet 4.5 | Haiku 4.5 | Default |
 | `bedrock-opus` | Claude Opus 4.5 | Haiku 4.5 | Premium |
-| `bedrock-deepseek` | DeepSeek V3.1 | Haiku 4.5 | Coding |
+| `bedrock-deepseek` | DeepSeek V3 | Haiku 4.5 | Coding |
 | `openai` | GPT-5.2 | GPT-5.1 | API |
-| `openai-codex` | GPT-5.2-Codex | GPT-5.1 | Coding |
+| `openai-codex` | GPT-5.1-Codex | GPT-5.1 | Coding |
 | `gemini` | Gemini 3 Pro | Flash | API |
-| `bedrock-qwen` | Qwen3-Coder 480B | 30B | Open |
 | `qwen-local` | Qwen3-Coder 30B | (same) | Ollama |
 | `devstral-local` | Devstral 24B | (same) | Ollama |
 | `acp-claude` | Claude Code CLI | - | ACP |
@@ -32,9 +31,9 @@ Switch complete provider configs with delegated models for fast operations:
 All available for direct selection:
 - Claude: `claude`, `claude-opus`, `claude-haiku`
 - Bedrock Claude: `bedrock`, `bedrock-opus`, `bedrock-haiku`
-- OpenAI: `openai`, `openai-5.1`, `openai-codex`, `copilot`
+- OpenAI: `openai`, `openai-5.1`, `openai-codex`, `openai-codex-max`, `copilot`
 - Google: `gemini`, `gemini-flash`
-- Bedrock Open: `bedrock-qwen`, `bedrock-qwen-30b`, `bedrock-deepseek`, `bedrock-deepseek-r1`, `bedrock-llama`, `bedrock-llama-scout`
+- Bedrock Open: `bedrock-deepseek`
 - Ollama: `ollama` (Qwen3-Coder 30B), `ollama-devstral` (Devstral 24B)
 - ACP: `claude-code`, `opencode`, `gemini-cli`
 
@@ -46,18 +45,20 @@ All available for direct selection:
 
 ## Keybindings
 
-### Avante (`<leader>v*`)
-- `<leader>vz` - Zen mode (Claude Code-like flow)
-- `<leader>va` - Ask Avante
-- `<leader>vt` - Toggle sidebar
-- `<leader>vm` - Switch models
-- `<leader>vp` - Switch profiles
+### Avante (`<leader>a*`)
+- `<leader>az` - Zen mode (Claude Code-like flow)
+- `<leader>aa` - Ask Avante (visual: ask with selection)
+- `<leader>at` - Toggle sidebar
+- `<leader>am` - Switch models
+- `<leader>ap` - Switch profiles
+- `<leader>ae` - Edit selection (visual)
 
 ### Claude Code (`<leader>c*`)
 - `<leader>cc` - Toggle Claude
 - `<leader>cf` - Focus Claude
 - `<leader>cr` - Resume session
-- `<leader>cm` - Select model
+- `<leader>cC` - Continue session
+- `<leader>cM` - Select model
 - `<leader>cb` - Add buffer
 - `<leader>cs` - Send selection (visual) / Add file (tree)
 - `<leader>cy` - Accept diff
@@ -83,3 +84,38 @@ All available for direct selection:
 - curl 8.18.0+ (Homebrew, for Bedrock AWS sig v4)
 - mcp-hub (npm global via mise)
 - opencode CLI (Homebrew tap)
+
+## Pre-Commit Audit Pattern
+
+### Usage
+Before committing significant code, run parallel expert review agents:
+```
+"Run pre-commit audit for [language] targeting 90% confidence"
+```
+
+### Audit Areas (per language)
+
+| Language | Build/Deps | API Usage | Patterns | Safety |
+|----------|------------|-----------|----------|--------|
+| Haskell | stack.yaml, cabal | Hackage APIs | Monad stacks, deriving | Process, exceptions |
+| Rust | Cargo.toml | crates.io APIs | Ownership, lifetimes | unsafe, FFI |
+| TypeScript | package.json | npm types | React patterns | XSS, injection |
+| Python | pyproject.toml | PyPI APIs | Type hints, async | subprocess, eval |
+
+### Confidence Thresholds
+- **90%+**: Safe to commit
+- **70-89%**: Fix issues, re-audit
+- **<70%**: Major rework needed
+
+### Skill Candidate: `/audit`
+This pattern would work well as a Claude Code skill:
+- Parameterized by language/framework
+- Launches parallel expert agents
+- Aggregates confidence scores
+- Clear pass/fail gate
+
+Example skill invocation:
+```
+/audit haskell   # Audit current changes for Haskell project
+/audit rust 85   # Audit with 85% threshold
+```

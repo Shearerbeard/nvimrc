@@ -16,10 +16,11 @@ if is_macos then
     for _, line in ipairs(lines) do
       -- Skip empty lines and comments
       if not line:match("^%s*$") and not line:match("^%s*#") then
-        -- print("Processing line: " .. line)
-
-        -- Match variable assignments: KEY_NAME=value (with or without export)
-        local key, value = line:match("^%s*([A-Z][A-Z_]*)%s*=%s*(.*)$")
+        -- Match variable assignments: KEY_NAME=value or export KEY_NAME=value
+        local key, value = line:match("^%s*export%s+([A-Z][A-Z_0-9]*)%s*=%s*(.*)$")
+        if not key then
+          key, value = line:match("^%s*([A-Z][A-Z_0-9]*)%s*=%s*(.*)$")
+        end
 
         if key and value then
           -- Remove surrounding quotes if present
@@ -33,9 +34,6 @@ if is_macos then
           value = vim.fn.expand(value)
 
           vim.env[key] = value
-          -- print("Loaded " .. key .. " = " .. value)
-        else
-          -- print("No match for line: " .. line)
         end
       end
     end
