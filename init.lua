@@ -1,45 +1,43 @@
 vim.g.base46_cache = vim.fn.stdpath "data" .. "/base46/"
 vim.g.mapleader = " "
 
--- mac iterm2 zshenv fix
-local is_macos = vim.loop.os_uname().sysname == "Darwin"
-
-if is_macos then
-  -- print("Running on macOS - loading environment variables from .zshenv...")
-
-  -- Read .zshenv file directly
-  local zshenv_path = vim.fn.expand("~/.zshenv")
-
-  if vim.fn.filereadable(zshenv_path) == 1 then
-    local lines = vim.fn.readfile(zshenv_path)
-
-    for _, line in ipairs(lines) do
-      -- Skip empty lines and comments
-      if not line:match("^%s*$") and not line:match("^%s*#") then
-        -- Match variable assignments: KEY_NAME=value or export KEY_NAME=value
-        local key, value = line:match("^%s*export%s+([A-Z][A-Z_0-9]*)%s*=%s*(.*)$")
-        if not key then
-          key, value = line:match("^%s*([A-Z][A-Z_0-9]*)%s*=%s*(.*)$")
+-- Load environment variables from shell config files (needed for GUI launches)
+local function parse_env_file(filepath)
+  if vim.fn.filereadable(filepath) ~= 1 then
+    return false
+  end
+  local lines = vim.fn.readfile(filepath)
+  for _, line in ipairs(lines) do
+    if not line:match("^%s*$") and not line:match("^%s*#") then
+      local key, value = line:match("^%s*export%s+([A-Z][A-Z_0-9]*)%s*=%s*(.*)$")
+      if not key then
+        key, value = line:match("^%s*([A-Z][A-Z_0-9]*)%s*=%s*(.*)$")
+      end
+      if key and value then
+        if value:match('^".*"$') then
+          value = value:sub(2, -2)
+        elseif value:match("^'.*'$") then
+          value = value:sub(2, -2)
         end
-
-        if key and value then
-          -- Remove surrounding quotes if present
-          if value:match('^".*"$') then
-            value = value:sub(2, -2)
-          elseif value:match("^'.*'$") then
-            value = value:sub(2, -2)
-          end
-
-          -- Expand variables like $HOME
-          value = vim.fn.expand(value)
-
-          vim.env[key] = value
-        end
+        value = vim.fn.expand(value)
+        vim.env[key] = value
       end
     end
-  else
-    print("Could not read ~/.zshenv")
   end
+  return true
+end
+
+local shell = os.getenv("SHELL") or ""
+local loaded = false
+if shell:match("zsh") then
+  loaded = parse_env_file(vim.fn.expand("~/.zshenv"))
+end
+if not loaded and shell:match("bash") then
+  loaded = parse_env_file(vim.fn.expand("~/.bash_profile"))
+    or parse_env_file(vim.fn.expand("~/.bashrc"))
+end
+if not loaded then
+  parse_env_file(vim.fn.expand("~/.profile"))
 end
 
 -- bootstrap lazy and all plugins

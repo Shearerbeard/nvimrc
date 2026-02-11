@@ -3,9 +3,6 @@ Session.vim
 *.swp
 *.swo
 
-# Lazy.nvim plugin manager
-lazy-lock.json
-
 # Compiled Lua files
 luac.out
 

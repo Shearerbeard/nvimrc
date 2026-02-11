@@ -92,7 +92,6 @@ return {
   },
   {
     "charludo/projectmgr.nvim",
-    lazy = false, -- important!
     keys = {
       { "<leader>pp", "<cmd> ProjectMgr<CR>", desc = "Open Projects" },
     },
@@ -287,9 +286,8 @@ return {
       { "<leader>dgt", function() require("dap-go").debug_test() end, desc = "Debug Test (Go)", ft = "go" },
       { "<leader>dgl", function() require("dap-go").debug_last_test() end, desc = "Debug Last Test (Go)", ft = "go" },
     },
-    config = function(_, opts)
-      -- require("dap-go")
-      require "configs.dap-go" -- Import the config file
+    config = function()
+      local opts = require "configs.dap-go"
       require("dap-go").setup(opts)
     end,
   },
@@ -352,13 +350,12 @@ return {
 
       -- MCP Hub integration (LSP diagnostics, tools, resources)
       system_prompt = function()
-        local hub = require("mcphub").get_hub_instance()
-        return hub and hub:get_active_servers_prompt() or ""
+        local ok, hub = pcall(function() return require("mcphub").get_hub_instance() end)
+        return ok and hub and hub:get_active_servers_prompt() or ""
       end,
       custom_tools = function()
-        return {
-          require("mcphub.extensions.avante").mcp_tool(),
-        }
+        local ok, tool = pcall(function() return require("mcphub.extensions.avante").mcp_tool() end)
+        return ok and tool and { tool } or {}
       end,
       -- Claude with thinking mode
       providers = {
@@ -764,22 +761,12 @@ return {
     end,
   },
 
-  -- Python development plugins
-  {
-    "nvim-treesitter/nvim-treesitter",
-    opts = function(_, opts)
-      -- Ensure Python treesitter parser is installed
-      if type(opts.ensure_installed) == "table" then
-        vim.list_extend(opts.ensure_installed, { "python" })
-      end
-    end,
-  },
-
   -- MCP Hub - manage MCP servers for AI assistants
   {
     "ravitemer/mcphub.nvim",
     dependencies = { "nvim-lua/plenary.nvim" },
-    build = "npm install -g mcp-hub@latest",
+    -- mcp-hub should be pre-installed via mise (npm install -g mcp-hub@latest)
+    build = "npm install -g mcp-hub@latest || true",
     config = function()
       require("mcphub").setup({
         -- Auto-start servers when needed
@@ -801,6 +788,7 @@ return {
   {
     "georgeharker/mcp-diagnostics.nvim",
     dependencies = { "ravitemer/mcphub.nvim" },
+    event = "LspAttach",
     config = function()
       require("mcp-diagnostics").setup({
         -- Register with mcphub

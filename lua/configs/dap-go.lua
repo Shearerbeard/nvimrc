@@ -1,6 +1,4 @@
-local dap_go = require("dap-go")
-
-dap_go.setup {
+return {
   -- Path to the delve command (default is "dlv")
   delve = {
     path = "dlv",
