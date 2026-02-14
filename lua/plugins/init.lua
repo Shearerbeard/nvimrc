@@ -95,6 +95,7 @@ return {
     keys = {
       { "<leader>pp", "<cmd> ProjectMgr<CR>", desc = "Open Projects" },
     },
+    opts = {},
   },
   {
     "folke/todo-comments.nvim",
@@ -791,10 +792,7 @@ return {
     event = "LspAttach",
     config = function()
       require("mcp-diagnostics").setup({
-        -- Register with mcphub
-        mcphub = {
-          enabled = true,
-        },
+        mode = "mcphub",
       })
     end,
   },
