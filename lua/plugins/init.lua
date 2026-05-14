@@ -17,6 +17,12 @@ return {
     },
   },
 
+  -- Seamless navigation between tmux panes and vim splits
+  {
+    "christoomey/vim-tmux-navigator",
+    lazy = false,
+  },
+
   -- These are some examples, uncomment them if you want to see them work!
   {
     "neovim/nvim-lspconfig",
